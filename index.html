@@ -52,7 +52,7 @@
   .kv div{background:#0f2741;border:1px solid #1a476e;border-radius:12px;padding:10px}
   .badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#11334d;border:1px solid #1c507a;font-size:12px;margin-right:6px;margin-top:6px}
 
-  /* GENERÁTOR */
+  /* GENERÁTOR + SEARCH */
   .form{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
   @media (max-width:680px){.form{grid-template-columns:1fr}}
   .form input, .form select{width:100%;padding:12px 14px;border-radius:12px;border:1px solid #224f78;background:#0d243a;color:#e5f2ff;font-size:14px}
@@ -78,6 +78,7 @@
         <a href="#org">Organika</a>
         <a href="#generator">Generátor rovnic</a>
         <a href="#nazvoslovi">Názvosloví</a>
+        <a href="#search">Vyhledávání</a>
       </nav>
     </header>
 
@@ -162,8 +163,8 @@
           <div class="cardlite"><strong>Aldehydy/ketony:</strong> ethanal, propanon (aceton).</div>
           <div class="cardlite"><strong>Karboxylové kyseliny:</strong> kys. mravenčí, octová.</div>
           <div class="cardlite"><strong>Estery:</strong> ethyl-acetát (vůně), methyl-formiát.</div>
-          <div class="cardlite"><strong>Aminy:</strong> methylamin, anilin (9. třída = jen základ).</div>
-          <div class="cardlite"><strong>Amidy:</strong> acetamid (pokročilejší, pro přehled).</div>
+          <div class="cardlite"><strong>Aminy:</strong> methylamin, anilin.</div>
+          <div class="cardlite"><strong>Amidy:</strong> acetamid.</div>
           <div class="cardlite"><strong>Nitrily:</strong> acetonitril.</div>
         </div>
         <p>U každé skupiny zvol 3–9 zástupců (základní a důležité). Generátor umí spalování alkanů a základní anorganické děje; další scénáře lze snadno přidat.</p>
@@ -181,16 +182,16 @@
 
     <section id="generator" class="card" style="margin-top:16px">
       <h2>Generátor rovnic (demo) — zadej reaktanty a typ reakce</h2>
-      <div class="muted">Zatím podporuje: <strong>kov + O₂ → oxid</strong>, <strong>kov + Cl₂ → halogenid</strong>, <strong>spalování alkanu</strong>, <strong>neutralizace HCl + NaOH</strong>. Postupně snadno rozšíříš v <code>script.js</code>.</div>
+      <div class="muted">Zatím podporuje: <strong>kov + O₂ → oxid</strong>, <strong>kov + Cl₂ → halogenid</strong>, <strong>spalování alkanu</strong>, <strong>neutralizace HCl + NaOH</strong> + <strong>obecná neutralizace vícesytných kyselin</strong>. </div>
       <div class="form">
-        <input id="r1" placeholder="Reaktant 1 (např. Na nebo C2H6 nebo HCl)" />
+        <input id="r1" placeholder="Reaktant 1 (např. Na nebo C2H6 nebo H2SO4)" />
         <input id="r2" placeholder="Reaktant 2 (např. O2 nebo Cl2 nebo NaOH)" />
         <select id="rtype" aria-label="typ reakce">
           <option value="auto">Automaticky rozpoznat</option>
           <option value="oxidace">Kov + O₂ → oxid</option>
           <option value="halogenace">Kov + Cl₂ → halogenid</option>
           <option value="spalovani">Spalování alkanu CxHy</option>
-          <option value="neutralizace">Neutralizace HCl + NaOH</option>
+          <option value="neutralizace">Neutralizace (kyselina + hydroxid)</option>
         </select>
         <button class="btn" id="genBtn">Vyčísli rovnici</button>
       </div>
@@ -227,7 +228,7 @@
     </section>
 
     <footer class="muted" style="margin-top:20px;text-align:center">
-      © 2025 Chemie 9. třída · Postaveno jako single‑file demo pro GitHub Pages. Snadné rozšíření do více souborů (<code>data/*.json</code>, <code>script.js</code> atd.).
+      © 2025 Chemie 9. třída · Single-file demo pro GitHub Pages. Data lze rozšířit v COMPOUNDS / ELEMENTS vespod souboru.
     </footer>
   </div>
 
@@ -258,17 +259,11 @@ const ELEMENTS = [
 ];
 
 // Rozmístění do mřížky (jednoduchý layout 18 sloupců; prázdná místa = null)
-// Pouze demo – obsahuje hlavně zástupné prvky, ale zachovává typické rohové/okrajové pozice.
 const PSE_LAYOUT = [
-  // řádek 1 (18)
   "H", null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,"He",
-  // řádek 2
   "Li","Be",null,null,null,null,null,null,null,null,null,"B","C","N","O","F","Ne",
-  // řádek 3
   "Na","Mg",null,null,null,null,null,null,null,null,null,"Al","Si","P","S","Cl","Ar",
-  // řádek 4 (zkráceno – jen pár příkladů)
   "K","Ca","Sc","Ti","V","Cr","Mn","Fe","Co","Ni","Cu","Zn","Ga","Ge","As","Se","Br","Kr",
-  // řádek 5 (placeholdery nepoužité v demu)
 ];
 
 function findEl(sym){return ELEMENTS.find(e=>e.sym===sym)}
@@ -352,14 +347,85 @@ function exampleReactions(e){
 }
 
 // =====================
-// GENERÁTOR ROVNIC (první verze – pravidlový)
+// DATABÁZE SLOUČENIN pro vyhledávání (rozšiřitelná)
+// =====================
+const COMPOUNDS = [
+  {vzorec:"H2O",nazev:"voda",typ:"oxid vodíku",ox_prvky:{H:"+I",O:"−II"},reakce:["2H2 + O2 → 2H2O","H2O → H2 + ½O2 (elektrolýza)"],vyuziti:"rozpouštědlo, životní procesy"},
+  {vzorec:"NaCl",nazev:"chlorid sodný",typ:"sůl (halogenid)",ox_prvky:{Na:"+I",Cl:"−I"},reakce:["2Na + Cl2 → 2NaCl","NaCl + AgNO3 → AgCl↓ + NaNO3"],vyuziti:"kuchyňská sůl, průmysl"},
+  {vzorec:"HCl",nazev:"kyselina chlorovodíková",typ:"kyselina bezkyslíkatá",ox_prvky:{H:"+I",Cl:"−I"},reakce:["H2 + Cl2 → 2HCl","HCl + NaOH → NaCl + H2O"],vyuziti:"laboratoř, čištění kovů"},
+  {vzorec:"H2SO4",nazev:"kyselina sírová",typ:"kyselina (diprotická)",ox_prvky:{H:"+I",S:"+VI",O:"−II"},reakce:["SO3 + H2O → H2SO4","H2SO4 + 2NaOH → Na2SO4 + 2H2O"],vyuziti:"akumulátory, hnojiva"},
+  {vzorec:"Na2SO4",nazev:"síran sodný",typ:"sůl (síran)",ox_prvky:{Na:"+I","SO4":"2−"},reakce:["H2SO4 + 2NaOH → Na2SO4 + 2H2O"],vyuziti:"sklářství, detergenty"},
+  {vzorec:"NaOH",nazev:"hydroxid sodný",typ:"hydroxid (zásada)",ox_prvky:{Na:"+I",O:"−II",H:"+I"},reakce:["NaOH + HCl → NaCl + H2O","2Na + 2H2O → 2NaOH + H2"],vyuziti:"louh, mýdla"},
+  {vzorec:"CO2",nazev:"oxid uhličitý",typ:"oxid nekovový",ox_prvky:{C:"+IV",O:"−II"},reakce:["C + O2 → CO2","Ca(OH)2 + CO2 → CaCO3↓ + H2O"],vyuziti:"sycení nápojů, hašení"},
+  {vzorec:"CaCO3",nazev:"uhličitan vápenatý",typ:"sůl (uhličitan)",ox_prvky:{Ca:"+II",C:"+IV",O:"−II"},reakce:["CaCO3 → CaO + CO2","CaCO3 + 2HCl → CaCl2 + CO2 + H2O"],vyuziti:"vápenec, stavebnictví"},
+  {vzorec:"CH4",nazev:"methan",typ:"alkan",ox_prvky:{C:"−IV",H:"+I"},reakce:["CH4 + 2O2 → CO2 + 2H2O"],vyuziti:"palivo"},
+  {vzorec:"CuSO4",nazev:"síran měďnatý",typ:"sůl (síran)",ox_prvky:{Cu:"+II","SO4":"2−"},reakce:["Zn + CuSO4 → ZnSO4 + Cu","CuSO4 + 2NaOH → Cu(OH)2↓ + Na2SO4"],vyuziti:"modrá skalice"},
+  {vzorec:"CuSO4·5H2O",nazev:"pentahydrát síranu měďnatého",typ:"sůl (hydrát)",ox_prvky:{Cu:"+II","SO4":"2−",H:"(+I) ve vodě"},reakce:["CuSO4 + 5H2O → CuSO4·5H2O"],vyuziti:"laboratoře"},
+  {vzorec:"AgCl",nazev:"chlorid stříbrný",typ:"sůl (halogenid, sraženina)",ox_prvky:{Ag:"+I",Cl:"−I"},reakce:["AgNO3 + NaCl → AgCl↓ + NaNO3"],vyuziti:"důkaz Cl⁻"},
+  {vzorec:"H2S",nazev:"kyselina sirovodíková (sulfan)",typ:"kyselina bezkyslíkatá",ox_prvky:{H:"+I",S:"−II"},reakce:["H2S + 2NaOH → Na2S + 2H2O","H2S + CuSO4 → CuS↓ + H2SO4"],vyuziti:"analytika (sulfidy)"},
+  {vzorec:"NaCN",nazev:"kyanid sodný",typ:"sůl (kyanid)",ox_prvky:{Na:"+I","CN":"−"},reakce:["HCN + NaOH → NaCN + H2O"],vyuziti:"(průmysl; toxický)"},
+  {vzorec:"HCN",nazev:"kyselina kyanovodíková",typ:"kyselina bezkyslíkatá",ox_prvky:{H:"+I",C:"−I",N:"−III"},reakce:["HCN + NaOH → NaCN + H2O"],vyuziti:"organické syntézy (pouze odborně)"},
+  {vzorec:"BaSO4",nazev:"síran barnatý",typ:"sůl (nes. sraženina)",ox_prvky:{Ba:"+II","SO4":"2−"},reakce:["Ba(OH)2 + H2SO4 → BaSO4↓ + 2H2O"],vyuziti:"kontrastní látka"},
+  {vzorec:"KNO3",nazev:"dusičnan draselný",typ:"sůl (dusičnan)",ox_prvky:{K:"+I","NO3":"−"},reakce:["KOH + HNO3 → KNO3 + H2O"],vyuziti:"hnojiva"},
+  {vzorec:"NaHCO3",nazev:"hydrogenuhličitan sodný",typ:"sůl (hydrogen)",ox_prvky:{Na:"+I","HCO3":"−"},reakce:["Na2CO3 + CO2 + H2O → 2NaHCO3"],vyuziti:"jedlá soda"},
+  {vzorec:"Ca(OH)2",nazev:"hydroxid vápenatý (hašené vápno)",typ:"hydroxid",ox_prvky:{Ca:"+II",O:"−II",H:"+I"},reakce:["CaO + H2O → Ca(OH)2","Ca(OH)2 + CO2 → CaCO3↓ + H2O"],vyuziti:"stavebnictví"},
+  {vzorec:"FeCl3",nazev:"chlorid železitý",typ:"sůl (halogenid)",ox_prvky:{Fe:"+III",Cl:"−I"},reakce:["2Fe + 3Cl2 → 2FeCl3"],vyuziti:"srážení, leptání"},
+  {vzorec:"FeS",nazev:"sulfid želenatý",typ:"sulfid",ox_prvky:{Fe:"+II",S:"−II"},reakce:["Fe + S → FeS"],vyuziti:"učební příklady"},
+  {vzorec:"Na2O2",nazev:"peroxid sodný",typ:"peroxid",ox_prvky:{Na:"+I",O:"−I"},reakce:["Na2O2 + H2O → 2NaOH + H2O2"],vyuziti:"oxidační činidlo"},
+  {vzorec:"H2O2",nazev:"peroxid vodíku",typ:"peroxid",ox_prvky:{H:"+I",O:"−I"},reakce:["2H2O2 → 2H2O + O2"],vyuziti:"dezinfekce"},
+  {vzorec:"NH3",nazev:"amoniak (čpavek)",typ:"hydrid dusíku",ox_prvky:{N:"−III",H:"+I"},reakce:["NH3 + H2O ⇌ NH4+ + OH−","HCl + NH3 → NH4Cl"],vyuziti:"hnojiva, roztoky"},
+];
+
+// =====================
+// VYHLEDÁVÁNÍ — prvky i sloučeniny
+// =====================
+function lookup(query){
+  const q=query.trim().toLowerCase();
+  if(!q) return null;
+
+  // 1) element (symbol nebo český název)
+  const el = ELEMENTS.find(e=> e.sym.toLowerCase()===q || e.name.toLowerCase()===q);
+  if(el){
+    return {kind:'element', html:`<strong>${el.name} (${el.sym})</strong><br>Z=${el.Z}, typ: ${el.type}, oxidační čísla: ${el.ox.join(', ')}.<br>Typické sloučeniny:<ul>${exampleCompounds(el).map(x=>`<li>${x}</li>`).join('')}</ul>`};
+  }
+
+  // 2) sloučenina — přesný vzorec
+  const cmp1 = COMPOUNDS.find(c=> c.vzorec.toLowerCase()===q);
+  if(cmp1){
+    const ox = typeof cmp1.ox_prvky==='string'
+      ? cmp1.ox_prvky
+      : Object.entries(cmp1.ox_prvky).map(([k,v])=>`${k} ${v}`).join(', ');
+    return {kind:'compound', html:`<strong>${cmp1.vzorec}</strong> — ${cmp1.nazev}<br><b>Typ:</b> ${cmp1.typ}<br><b>Ox. čísla:</b> ${ox}<br><b>Reakce:</b><ul>${cmp1.reakce.map(r=>`<li><code>${r}</code></li>`).join('')}</ul><b>Využití:</b> ${cmp1.vyuziti||'—'}`};
+  }
+
+  // 3) sloučenina — podle názvu (substring)
+  const cmp2 = COMPOUNDS.find(c=> c.nazev.toLowerCase().includes(q));
+  if(cmp2){
+    const ox = typeof cmp2.ox_prvky==='string'
+      ? cmp2.ox_prvky
+      : Object.entries(cmp2.ox_prvky).map(([k,v])=>`${k} ${v}`).join(', ');
+    return {kind:'compound', html:`<strong>${cmp2.vzorec}</strong> — ${cmp2.nazev}<br><b>Typ:</b> ${cmp2.typ}<br><b>Ox. čísla:</b> ${ox}<br><b>Reakce:</b><ul>${cmp2.reakce.map(r=>`<li><code>${r}</code></li>`).join('')}</ul><b>Využití:</b> ${cmp2.vyuziti||'—'}`};
+  }
+
+  return null;
+}
+
+document.getElementById('searchBtn').addEventListener('click',()=>{
+  const q=document.getElementById('searchBox').value; 
+  const out=document.getElementById('searchOut');
+  const ans=lookup(q);
+  out.innerHTML = ans? ans.html : `<span class='bad'>Nenašel jsem „${q}“ v databázi. Rozšiř prosím seznam COMPOUNDS / ELEMENTS.</span>`;
+});
+document.getElementById('searchBox').addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('searchBtn').click(); });
+
+// =====================
+// GENERÁTOR ROVNIC (rozšířený)
 // =====================
 const metals = new Set(['Li','Na','K','Mg','Ca','Ba','Al','Fe','Cu','Zn']);
 const halogens = new Set(['F','Cl','Br','I']);
 
 function parseFormula(f){
-  // velmi jednoduchý parser jen pro vzorce bez závorek (demo)
-  // vrací pole {el, n}
+  // jednoduchý parser bez závorek (demo)
   const out=[]; const re=/([A-Z][a-z]?)(\d*)/g; let m;
   while((m=re.exec(f))!==null){
     const el=m[1]; const n=parseInt(m[2]||'1',10);
@@ -367,116 +433,88 @@ function parseFormula(f){
   }
   return out;
 }
-
 function gcd(a,b){ return !b?Math.abs(a):gcd(b,a%b); }
-function lcm(a,b){ return Math.abs(a*b)/gcd(a,b); }
 
 function isAlkane(form){
-  // CxHy with y=2x+2
   const parsed=parseFormula(form);
   const c=parsed.find(p=>p.el==='C');
   const h=parsed.find(p=>p.el==='H');
   if(!c||!h||parsed.length>2) return false;
   return (h.n===2*c.n+2);
 }
-
 function formatEquation(lhs, rhs, coeffL=[], coeffR=[]){
   const fmt = (arr, coeff)=>arr.map((sp,i)=> (coeff[i]&&coeff[i]!==1?coeff[i]+'':'') + sp).join(' + ');
   return fmt(lhs, coeffL) + ' → ' + fmt(rhs, coeffR);
 }
-
 function genOxidation(metalSym){
-  // Kov + O2 -> oxid M_a O_b podle valence (z datasetu vezmeme nejběžnější)
-  const el=findEl(metalSym);
-  if(!el) throw new Error('Neznámý kov');
-  const val=el.valences && el.valences[0] ? el.valences[0] : 2; // zjednodušení
-  // Oxidový anion má -II -> křížové pravidlo
-  // M^{+val} O^{2-} => M_{2} O_{val} a zkrátíme
-  let a=2, b=val;
-  const g=gcd(a,b); a/=g; b/=g;
+  const el=findEl(metalSym); if(!el) throw new Error('Neznámý kov');
+  const val=el.valences && el.valences[0] ? el.valences[0] : 2;
+  let a=2, b=val; const g=gcd(a,b); a/=g; b/=g;
   const prod = metalSym + (a>1?a:'') + 'O' + (b>1?b:'');
-  // LHS: M + O2 ; RHS: M_a O_b ; nyní vyčíslit koeficienty
-  // Rovnováha prvků: M: x = a*y ; O: 2*z = b*y ; minimal solution: x=a*k, z=(b/2)*k
-  // chceme celé -> zvolíme k tak, aby (b/2)*k integer => k = 2 / gcd(2,b)
   const k = 2 / gcd(2,b);
-  const x = a*k; // koef u kovu
-  const z = (b/2)*k; // koef u O2
-  const y = k; // koef u produktu
+  const x = a*k; const z = (b/2)*k; const y = k;
   return {
     products:[prod],
     equation: formatEquation([metalSym,'O2'], [prod], [x,z], [y]),
-    steps:[
-      `Valence kovu ~ ${val}, kyslík −II → vzorec oxidu ${prod} (křížové pravidlo).`,
-      `Vyčíslení: ${metalSym}: ${x} → ${a*y}; O: ${2*z} → ${b*y}.`]
+    steps:[`Valence kovu ~ ${val}, O −II → vzorec oxidu ${prod}.`]
   };
 }
-
 function genHalogenide(metalSym, hal='Cl'){
   const el=findEl(metalSym); if(!el) throw new Error('Neznámý kov');
-  const val=el.valences?.[0]||1;
-  const an=1; // Cl−
-  let a=an, b=val; // M^{+b} X^{−a} → M_a X_b (křížem)
-  const g=gcd(a,b); a/=g; b/=g;
+  const val=el.valences?.[0]||1; let a=1, b=val; const g=gcd(a,b); a/=g; b/=g;
   const prod = metalSym + (a>1?a:'') + hal + (b>1?b:'');
-  // Vyčíslení: M + X2 -> M_aX_b
-  // X: 2*z = b*y ; M: x = a*y
-  // Vyber y tak, aby b*y sudé → y = 2/gcd(2,b)
-  const y = 2 / gcd(2,b);
-  const x = a*y; const z = (b*y)/2;
-  return {
-    products:[prod],
-    equation: formatEquation([metalSym, hal+'2'], [prod], [x, z], [y]),
-    steps:[
-      `Valence kovu ~ ${val}, halogen −I → vzorec halogenidu ${prod}.`,
-      `Vyčíslení podle počtu atomů halogenu (X₂) a kovu.`]
-  };
+  const y = 2 / gcd(2,b); const x = a*y; const z = (b*y)/2;
+  return {products:[prod], equation: formatEquation([metalSym, hal+'2'], [prod], [x, z], [y]), steps:[`M^${val}+ + ${hal}− → ${prod}.`]};
 }
-
 function genCombustion(form){
-  // Spalování alkanu CxHy: CxHy + O2 -> CO2 + H2O (vyčíslení celočíselně)
-  const p=parseFormula(form);
-  const c=p.find(x=>x.el==='C')?.n||0;
-  const h=p.find(x=>x.el==='H')?.n||0;
+  const p=parseFormula(form); const c=p.find(x=>x.el==='C')?.n||0; const h=p.find(x=>x.el==='H')?.n||0;
   if(!(c>=1 && h===2*c+2)) throw new Error('Není to alkan CxH2x+2');
-  // Rovnice: CcHh + O2 -> c CO2 + (h/2) H2O ; O2 koef = (2c + (h/2)) / 2
-  let a=1; let b=2*c + (h/2); // kyslíky v produktech
-  let o2 = b/2;
-  // Zajistíme celá čísla: pokud h je liché? U alkanů h=2c+2 vždy sudé; o2 může být .5 → násobíme vše 2
-  if(o2%1!==0){ a*=2; o2*=2; }
-  const co2 = c*a; const h2o = (h/2)*a;
-  return {
-    products:['CO2','H2O'],
-    equation: formatEquation([form,'O2'], ['CO2','H2O'], [a, o2], [co2, h2o]),
-    steps:[
-      `Uhlík: ${c} → ${co2} v CO₂; Vodík: ${h} → ${h2o*2} v H₂O; dopočítán kyslík.`]
-  };
+  let a=1; let o2 = (2*c + (h/2))/2; if(o2%1!==0){ a=2; o2*=2; }
+  const co2=c*a; const h2o=(h/2)*a;
+  return {products:['CO2','H2O'], equation: formatEquation([form,'O2'], ['CO2','H2O'], [a, o2], [co2, h2o]), steps:[`C: ${c}→${co2}, H: ${h}→${h2o*2}, dopočet O₂.`]};
 }
 
-function genNeutralization(){
-  // Jednoduchá ukázka: HCl + NaOH -> NaCl + H2O (již vyčísleno 1:1:1:1)
-  return {
-    products:['NaCl','H2O'],
-    equation:'HCl + NaOH → NaCl + H₂O',
-    steps:['Silná kyselina + silná zásada → sůl a voda (neutralizace).']
+// ——— Obecná neutralizace HnA + M(OH)m ———
+const ANION_CHARGE = { 'Cl':1, 'NO3':1, 'SO4':2, 'CO3':2, 'PO4':3, 'CN':1 };
+function parseAcid(form){
+  // H2SO4, HNO3, HCl, H2CO3, H3PO4, HCN
+  const m = form.match(/^H(\d*)([A-Z][a-z]?(?:\d*)?(?:[A-Z][a-z]?\d*)*)$/);
+  if(!m) return null; const n = parseInt(m[1]||'1',10); const rest=m[2];
+  for(const an in ANION_CHARGE){ if(rest.startsWith(an)) return {n, anion:an, charge:ANION_CHARGE[an]}; }
+  return null;
+}
+function parseBase(form){
+  // NaOH, KOH, LiOH, Ca(OH)2, Ba(OH)2, Mg(OH)2
+  let m = form.match(/^(Na|K|Li)OH$/); if(m) return {metal:m[1], m:1};
+  m = form.match(/^(Ca|Ba|Mg)\(OH\)(\d+)$/); if(m) return {metal:m[1], m:parseInt(m[2],10)};
+  m = form.match(/^(Ca|Ba|Mg)\(OH\)2$/); if(m) return {metal:m[1], m:2};
+  return null;
+}
+function metalValence(sym){ const el = findEl(sym); if(!el) return 1; if(sym==='Ca'||sym==='Ba'||sym==='Mg') return 2; return 1; }
+
+function neutralizeGeneral(acid, base){
+  const A=parseAcid(acid); const B=parseBase(base);
+  if(!A||!B) throw new Error('Podporuji HCl/HNO3/H2SO4/H2CO3/H3PO4/HCN + NaOH/KOH/LiOH/Ca(OH)2/Ba(OH)2/Mg(OH)2');
+  const p = metalValence(B.metal); const q = A.charge; let a=q, b=p; const g=gcd(a,b); a/=g; b/=g;
+  const salt = B.metal + (a>1?a:'') + A.anion + (b>1?b:'');
+  const left = A.n*b, right = B.m*a;
+  if(left!==right){
+    const delta = left - right;
+    if(delta>0){
+      const hs = (b===1)? (B.metal+(a>1?a:'')+'H'+delta + A.anion) : (B.metal+(a>1?a:'')+A.anion);
+      const eq = `${acid} + ${B.metal}OH → ${hs} + H2O`;
+      return {equation:eq, products:[hs,'H2O'], steps:['Nedostatek zásady → vzniká kyselá (hydrogen) sůl.']};
+    } else {
+      const bs = B.m===2? `${B.metal}(OH)${B.m}` : `${B.metal}OH`;
+      const eq = `${acid} + ${bs} → (zásaditá sůl) + H2O`;
+      return {equation:eq, products:['(zásaditá sůl)','H2O'], steps:['Nedostatek kyseliny → zásaditá sůl.']};
+    }
   }
-}
-
-function autoDetect(r1, r2){
-  // heuristika
-  const A=r1.trim(), B=r2.trim();
-  if(!A||!B) throw new Error('Zadej oba reaktanty');
-  // Kov + O2
-  if(metals.has(A) && B==='O2') return ['oxidace', A];
-  if(metals.has(B) && A==='O2') return ['oxidace', B];
-  // Kov + Cl2
-  if(metals.has(A) && B==='Cl2') return ['halogenace', A, 'Cl'];
-  if(metals.has(B) && A==='Cl2') return ['halogenace', B, 'Cl'];
-  // Spalování alkanu
-  if(B==='O2' && isAlkane(A)) return ['spalovani', A];
-  if(A==='O2' && isAlkane(B)) return ['spalovani', B];
-  // Neutralizace specifická dvojice
-  if((A==='HCl'&&B==='NaOH')||(A==='NaOH'&&B==='HCl')) return ['neutralizace'];
-  throw new Error('Tento typ reakce zatím neumím automaticky. Zkus přepnout typ reakce.');
+  const acid_c = b; const base_c = a; const water_c = A.n*acid_c;
+  const acid_str = (acid_c>1?acid_c:'')+acid;
+  const base_str = (base_c>1?base_c:'') + (B.m===1? `${B.metal}OH` : `${B.metal}(OH)${B.m}`);
+  const salt_str = salt; const water_str = (water_c>1?water_c:'')+'H2O';
+  return {equation:`${acid_str} + ${base_str} → ${salt_str} + ${water_str}`, products:[salt, 'H2O'], steps:['Křížové pravidlo pro sůl, vyvážení H⁺ a OH⁻ na vodu.']};
 }
 
 function handleGenerate(){
@@ -486,26 +524,34 @@ function handleGenerate(){
   const out=document.getElementById('result');
   try{
     let data;
+    const A=r1, B=r2;
+
     if(type==='auto'){
-      const det=autoDetect(r1,r2);
-      if(det[0]==='oxidace') data=genOxidation(det[1]);
-      else if(det[0]==='halogenace') data=genHalogenide(det[1], det[2]||'Cl');
-      else if(det[0]==='spalovani') data=genCombustion(det[1]);
-      else if(det[0]==='neutralizace') data=genNeutralization();
+      // jednoduchá detekce
+      if((metals.has(A)&&B==='O2')||(metals.has(B)&&A==='O2')){
+        const M = metals.has(A)?A:B; data=genOxidation(M);
+      } else if((metals.has(A)&&B==='Cl2')||(metals.has(B)&&A==='Cl2')){
+        const M = metals.has(A)?A:B; data=genHalogenide(M,'Cl');
+      } else if((B==='O2'&&isAlkane(A))||(A==='O2'&&isAlkane(B))){
+        const alk = isAlkane(A)?A:B; data=genCombustion(alk);
+      } else if( (parseAcid(A)&&parseBase(B)) || (parseAcid(B)&&parseBase(A)) ){
+        data = parseAcid(A)&&parseBase(B) ? neutralizeGeneral(A,B) : neutralizeGeneral(B,A);
+      } else {
+        throw new Error('Typ reakce nerozpoznán. Zvol ručně.');
+      }
     } else if(type==='oxidace'){
-      const metal = metals.has(r1)?r1 : metals.has(r2)?r2 : null;
-      if(!metal) throw new Error('Zadej kov (např. Na, Fe) a O2.');
-      data=genOxidation(metal);
+      const M = metals.has(A)?A : metals.has(B)?B : null; if(!M) throw new Error('Zadej kov (Na, Fe…) a O₂.');
+      data=genOxidation(M);
     } else if(type==='halogenace'){
-      const metal = metals.has(r1)?r1 : metals.has(r2)?r2 : null;
-      if(!metal) throw new Error('Zadej kov (např. Na) a Cl2.');
-      data=genHalogenide(metal,'Cl');
+      const M = metals.has(A)?A : metals.has(B)?B : null; if(!M) throw new Error('Zadej kov (Na…) a Cl₂.');
+      data=genHalogenide(M,'Cl');
     } else if(type==='spalovani'){
-      const alk = isAlkane(r1)?r1 : isAlkane(r2)?r2 : null;
-      if(!alk) throw new Error('Zadej alkan CxH2x+2 a O2.');
+      const alk = isAlkane(A)?A : isAlkane(B)?B : null; if(!alk) throw new Error('Zadej alkan CxH2x+2 a O₂.');
       data=genCombustion(alk);
     } else if(type==='neutralizace'){
-      data=genNeutralization();
+      if( (parseAcid(A)&&parseBase(B)) || (parseAcid(B)&&parseBase(A)) )
+        data = parseAcid(A)&&parseBase(B) ? neutralizeGeneral(A,B) : neutralizeGeneral(B,A);
+      else data = {equation:'HCl + NaOH → NaCl + H₂O', products:['NaCl','H₂O'], steps:['Ukázková neutralizace 1:1.']};
     }
 
     out.innerHTML = `<div><strong>Vyčíslená rovnice:</strong><br>${data.equation}</div>
