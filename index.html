@@ -170,6 +170,15 @@
       </section>
     </div>
 
+    <section id="search" class="card" style="margin-top:16px">
+      <h2>Vyhledávač prvků a sloučenin</h2>
+      <div class="form" style="grid-template-columns:2fr auto">
+        <input id="searchBox" placeholder="Např. Na2SO4, síran sodný, H2SO4, chlor, Cl, kyanid, HCN…" />
+        <button class="btn" id="searchBtn">Hledat</button>
+      </div>
+      <div id="searchOut" class="code" style="margin-top:12px">Zadej vzorec nebo název.</div>
+    </section>
+
     <section id="generator" class="card" style="margin-top:16px">
       <h2>Generátor rovnic (demo) — zadej reaktanty a typ reakce</h2>
       <div class="muted">Zatím podporuje: <strong>kov + O₂ → oxid</strong>, <strong>kov + Cl₂ → halogenid</strong>, <strong>spalování alkanu</strong>, <strong>neutralizace HCl + NaOH</strong>. Postupně snadno rozšíříš v <code>script.js</code>.</div>
